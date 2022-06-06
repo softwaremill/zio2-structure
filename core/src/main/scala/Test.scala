@@ -8,20 +8,22 @@ case class LicensePlateExistsError(licensePlate: String)
 
 class CarApi(carService: CarService):
   def register(input: String): ZIO[Any, Nothing, String] =
-    val result = input.split(" ", 3).toList match
+    input.split(" ", 3).toList match
       case List(f1, f2, f3) =>
         val car = Car(f1, f2, f3)
-        carService.register(car).tapError {
+        carService.register(car).map(_ => "Car registered").catchAll {
           case _: LicensePlateExistsError =>
-            ZIO.logError(
-              s"Cannot register: $car, because a car with the same license plate already exists"
-            )
+            ZIO
+              .logError(
+                s"Cannot register: $car, because a car with the same license plate already exists"
+              )
+              .map(_ => "Bad request")
           case t =>
-            ZIO.logErrorCause(s"Cannot register: $car, unknown error", Cause.fail(t))
+            ZIO
+              .logErrorCause(s"Cannot register: $car, unknown error", Cause.fail(t))
+              .map(_ => "Internal server error")
         }
-      case _ => ZIO.logError(s"Bad request: $input") *> ZIO.fail(())
-
-    result.map(_ => "Car registered").catchAll(_ => ZIO.succeed("Bad request"))
+      case _ => ZIO.logError(s"Bad request: $input").map(_ => "Bad Request")
 
 object CarApi:
   lazy val live: ZLayer[CarService, Any, CarApi] = ZLayer.fromFunction(CarApi(_))
