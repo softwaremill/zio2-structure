@@ -1,4 +1,4 @@
-import zio.{Cause, IO, Ref, Scope, Task, UIO, ULayer, URIO, ZIO, ZIOAppDefault, ZLayer}
+import zio.{Cause, durationInt, IO, Ref, Scope, Task, UIO, ULayer, URIO, ZIO, ZIOAppDefault, ZLayer}
 
 case class Connection(id: String)
 case class Car(make: String, model: String, licensePlate: String)
@@ -11,13 +11,13 @@ class CarApi(carService: CarService):
     input.split(" ", 3).toList match
       case List(f1, f2, f3) =>
         val car = Car(f1, f2, f3)
-        carService.register(car).map(_ => "Car registered").catchAll {
+        carService.register(car).map(_ => "OK: Car registered").catchAll {
           case _: LicensePlateExistsError =>
             ZIO
               .logError(
                 s"Cannot register: $car, because a car with the same license plate already exists"
               )
-              .map(_ => "Bad request")
+              .map(_ => "Bad request: duplicate")
           case t =>
             ZIO
               .logErrorCause(s"Cannot register: $car, unknown error", Cause.fail(t))
@@ -47,16 +47,18 @@ object CarService:
 
 class CarRepository():
   def exists(licensePlate: String): ZIO[Connection, Nothing, Boolean] =
-    ZIO
-      .service[Connection]
-      .map(_ => /* perform the check */ licensePlate.startsWith("WN"))
-      .tap(_ => ZIO.logInfo(s"Checking if license plate exists: $licensePlate"))
+    ZIO.sleep(100.millis) *>
+      ZIO
+        .service[Connection]
+        .map(_ => /* perform the check */ licensePlate.startsWith("WN"))
+        .tap(_ => ZIO.logInfo(s"Checking if license plate exists: $licensePlate"))
 
   def insert(car: Car): ZIO[Connection, Nothing, Unit] =
-    ZIO
-      .service[Connection]
-      .map(_ => /* perform the insert */ ())
-      .tap(_ => ZIO.logInfo(s"Inserting car: $car"))
+    ZIO.sleep(200.millis) *>
+      ZIO
+        .service[Connection]
+        .map(_ => /* perform the insert */ ())
+        .tap(_ => ZIO.logInfo(s"Inserting car: $car"))
 
 object CarRepository:
   lazy val live: ZLayer[Any, Nothing, CarRepository] = ZLayer.succeed(CarRepository())
@@ -92,11 +94,16 @@ class ConnectionPool(r: Ref[Vector[Connection]]):
     .tap(c => ZIO.logInfo(s"Obtained connection: ${c.id}"))
   def release(c: Connection): Task[Unit] =
     r.modify(cs => ((), cs :+ c)).tap(_ => ZIO.logInfo(s"Released connection: ${c.id}"))
+  def close: ZIO[Any, Nothing, Unit] =
+    r.modify(c => (c, Vector.empty))
+      .flatMap(conns => ZIO.foreachDiscard(conns)(conn => ZIO.logInfo(s"Closing: $conn")))
 
 object ConnectionPool:
-  lazy val live: ZLayer[Any, Nothing, ConnectionPool] =
+  lazy val live: ZLayer[Scope, Nothing, ConnectionPool] =
     ZLayer(
-      Ref
-        .make(Vector(Connection("conn1"), Connection("conn2"), Connection("conn3")))
-        .map(ConnectionPool(_))
+      ZIO.acquireRelease(
+        Ref
+          .make(Vector(Connection("conn1"), Connection("conn2"), Connection("conn3")))
+          .map(ConnectionPool(_))
+      )(_.close)
     )
