@@ -8,22 +8,25 @@ case class LicensePlateExistsError(licensePlate: String)
 
 class CarApi(carService: CarService):
   def register(input: String): ZIO[Any, Nothing, String] =
-    input.split(" ", 3).toList match
-      case List(f1, f2, f3) =>
-        val car = Car(f1, f2, f3)
-        carService.register(car).map(_ => "OK: Car registered").catchAll {
-          case _: LicensePlateExistsError =>
-            ZIO
-              .logError(
-                s"Cannot register: $car, because a car with the same license plate already exists"
-              )
-              .map(_ => "Bad request: duplicate")
-          case t =>
-            ZIO
-              .logErrorCause(s"Cannot register: $car, unknown error", Cause.fail(t))
-              .map(_ => "Internal server error")
-        }
-      case _ => ZIO.logError(s"Bad request: $input").map(_ => "Bad Request")
+    val rid = "REQ" + Math.abs(input.hashCode % 10000)
+    ZIO.logSpan(rid) {
+      input.split(" ", 3).toList match
+        case List(f1, f2, f3) =>
+          val car = Car(f1, f2, f3)
+          carService.register(car).map(_ => "OK: Car registered").catchAll {
+            case _: LicensePlateExistsError =>
+              ZIO
+                .logError(
+                  s"Cannot register: $car, because a car with the same license plate already exists"
+                )
+                .map(_ => "Bad request: duplicate")
+            case t =>
+              ZIO
+                .logErrorCause(s"Cannot register: $car, unknown error", Cause.fail(t))
+                .map(_ => "Internal server error")
+          }
+        case _ => ZIO.logError(s"Bad request: $input").map(_ => "Bad Request")
+    }
 
 object CarApi:
   lazy val live: ZLayer[CarService, Any, CarApi] = ZLayer.fromFunction(CarApi(_))
