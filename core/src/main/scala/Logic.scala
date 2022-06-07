@@ -102,8 +102,8 @@ class ConnectionPool(r: Ref[Vector[Connection]]):
       .flatMap(conns => ZIO.foreachDiscard(conns)(conn => ZIO.logInfo(s"Closing: $conn")))
 
 object ConnectionPool:
-  lazy val live: ZLayer[Scope, Nothing, ConnectionPool] =
-    ZLayer(
+  lazy val live: ZLayer[Any, Nothing, ConnectionPool] =
+    ZLayer.scoped(
       ZIO.acquireRelease(
         Ref
           .make(Vector(Connection("conn1"), Connection("conn2"), Connection("conn3")))
