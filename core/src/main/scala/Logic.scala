@@ -29,7 +29,7 @@ class CarApi(carService: CarService):
     }
 
 object CarApi:
-  lazy val live: ZLayer[CarService, Any, CarApi] = ZLayer.fromFunction(CarApi(_))
+  val live: ZLayer[CarService, Any, CarApi] = ZLayer.fromFunction(CarApi(_))
 
 //
 
@@ -43,7 +43,7 @@ class CarService(carRepository: CarRepository, db: DB):
     }
 
 object CarService:
-  lazy val live: ZLayer[CarRepository & DB, Nothing, CarService] =
+  val live: ZLayer[CarRepository & DB, Nothing, CarService] =
     ZLayer.fromFunction(CarService(_, _))
 
 //
@@ -64,7 +64,7 @@ class CarRepository():
         .tap(_ => ZIO.logInfo(s"Inserting car: $car"))
 
 object CarRepository:
-  lazy val live: ZLayer[Any, Nothing, CarRepository] = ZLayer.succeed(CarRepository())
+  val live: ZLayer[Any, Nothing, CarRepository] = ZLayer.succeed(CarRepository())
 
 //
 
@@ -84,7 +84,7 @@ class DB(connectionPool: ConnectionPool):
     }
 
 object DB:
-  lazy val live: ZLayer[ConnectionPool, Nothing, DB] = ZLayer.fromFunction(DB(_))
+  val live: ZLayer[ConnectionPool, Nothing, DB] = ZLayer.fromFunction(DB(_))
 
 //
 
@@ -102,7 +102,7 @@ class ConnectionPool(r: Ref[Vector[Connection]]):
       .flatMap(conns => ZIO.foreachDiscard(conns)(conn => ZIO.logInfo(s"Closing: $conn")))
 
 object ConnectionPool:
-  lazy val live: ZLayer[Scope, Nothing, ConnectionPool] =
+  val live: ZLayer[Scope, Nothing, ConnectionPool] =
     ZLayer(
       ZIO.acquireRelease(
         Ref
