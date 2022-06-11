@@ -9,7 +9,7 @@ object Main extends ZIOAppDefault:
       _ <- CarApi.register("Tesla").debug
     yield ()
 
-  private lazy val layer: ZLayer[Any, Nothing, CarApi] =
+  private lazy val carApi: ZLayer[Any, Nothing, CarApi] =
     ZLayer.make[CarApi](
       CarApi.live,
       CarService.live,
@@ -17,5 +17,4 @@ object Main extends ZIOAppDefault:
       ConnectionPool.live(3)
     )
 
-  override def run: IO[Throwable, Unit] =
-    program.provide(layer)
+  override def run: IO[Throwable, Unit] = program.provide(carApi)
