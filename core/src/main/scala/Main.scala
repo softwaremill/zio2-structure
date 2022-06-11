@@ -1,7 +1,7 @@
 import zio.{Console, Scope, ZIO, ZIOAppDefault, ZLayer}
 
 object Main extends ZIOAppDefault:
-  val program =
+  val program: ZIO[CarApi, Nothing, Unit] =
     for {
       api <- ZIO.service[CarApi]
       _ <- api.register("Toyota Corolla WE98765").debug
@@ -9,7 +9,7 @@ object Main extends ZIOAppDefault:
       _ <- api.register("Tesla").debug
     } yield ()
 
-  override def run =
+  override def run: ZIO[Any, Any, Any] =
     program.provide(
       CarApi.live,
       CarService.live,
