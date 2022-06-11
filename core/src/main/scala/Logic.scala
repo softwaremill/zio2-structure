@@ -29,7 +29,7 @@ class CarApi(carService: CarService):
     }
 
 object CarApi:
-  lazy val live: ZLayer[CarService, Nothing, CarApi] = ZLayer.fromFunction(CarApi(_))
+  val live: ZLayer[CarService, Nothing, CarApi] = ZLayer.fromFunction(CarApi(_))
   def register(input: String): ZIO[CarApi, Nothing, String] =
     ZIO.serviceWithZIO[CarApi](_.register(input))
 
@@ -45,7 +45,7 @@ class CarService(db: DB):
     }
 
 object CarService:
-  lazy val live: ZLayer[DB, Nothing, CarService] =
+  val live: ZLayer[DB, Nothing, CarService] =
     ZLayer.fromFunction(CarService(_))
 
 //
@@ -83,7 +83,7 @@ class DB(connectionPool: ConnectionPool):
     }
 
 object DB:
-  lazy val live: ZLayer[ConnectionPool, Nothing, DB] = ZLayer.fromFunction(DB(_))
+  val live: ZLayer[ConnectionPool, Nothing, DB] = ZLayer.fromFunction(DB(_))
 
 //
 
