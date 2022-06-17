@@ -13,19 +13,19 @@ class CarApi(carService: CarService):
       input.split(" ", 3).toList match
         case List(f1, f2, f3) =>
           val car = Car(f1, f2, f3)
-          carService.register(car).map(_ => "OK: Car registered").catchAll {
+          carService.register(car).as("OK: Car registered").catchAll {
             case _: LicensePlateExistsError =>
               ZIO
                 .logError(
                   s"Cannot register: $car, because a car with the same license plate already exists"
                 )
-                .map(_ => "Bad request: duplicate")
+                .as("Bad request: duplicate")
             case t =>
               ZIO
                 .logErrorCause(s"Cannot register: $car, unknown error", Cause.fail(t))
-                .map(_ => "Internal server error")
+                .as("Internal server error")
           }
-        case _ => ZIO.logError(s"Bad request: $input").map(_ => "Bad Request")
+        case _ => ZIO.logError(s"Bad request: $input").as("Bad Request")
     }
 
 object CarApi:
@@ -50,18 +50,18 @@ object CarService:
 
 class CarRepository():
   def exists(licensePlate: String): ZIO[Connection, Nothing, Boolean] =
-    ZIO.sleep(100.millis) *>
-      ZIO
-        .service[Connection]
-        .map(_ => /* perform the check */ licensePlate.startsWith("WN"))
-        .tap(_ => ZIO.logInfo(s"Checking if license plate exists: $licensePlate"))
+    ZIO
+      .service[Connection]
+      .map(_ => /* perform the check */ licensePlate.startsWith("WN"))
+      .tap(_ => ZIO.logInfo(s"Checking if license plate exists: $licensePlate"))
+      .delay(100.millis)
 
   def insert(car: Car): ZIO[Connection, Nothing, Unit] =
-    ZIO.sleep(200.millis) *>
-      ZIO
-        .service[Connection]
-        .map(_ => /* perform the insert */ ())
-        .tap(_ => ZIO.logInfo(s"Inserting car: $car"))
+    ZIO
+      .service[Connection]
+      .map(_ => /* perform the insert */ ())
+      .tap(_ => ZIO.logInfo(s"Inserting car: $car"))
+      .delay(200.millis)
 
 object CarRepository:
   val live: ZLayer[Any, Nothing, CarRepository] = ZLayer.succeed(CarRepository())
