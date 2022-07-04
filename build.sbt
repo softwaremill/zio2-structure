@@ -2,14 +2,12 @@ import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 
 lazy val commonSettings = commonSmlBuildSettings ++ Seq(
   organization := "com.softwaremill.zio2",
-  scalaVersion := "3.1.2"
+  scalaVersion := "3.1.3"
 )
-
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.12" % Test
 
 lazy val rootProject = (project in file("."))
   .settings(commonSettings: _*)
-  .settings(publishArtifact := false, name := "root")
+  .settings(publishArtifact := false, name := "zio2-structure")
   .aggregate(core)
 
 lazy val core: Project = (project in file("core"))
@@ -17,8 +15,6 @@ lazy val core: Project = (project in file("core"))
   .settings(
     name := "core",
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % "2.0.0-RC6",
-      scalaTest
+      "dev.zio" %% "zio" % "2.0.0"
     )
   )
-
